@@ -6,19 +6,43 @@ const TeacherRemedialReport = () => {
   const [report, setReport] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     fetchReport();
   }, []);
 
+  // Auto-dismiss flash messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const fetchReport = async () => {
     setLoading(true);
     setError("");
+    setSuccess("");
     try {
       const res = await getRemedialReport();
       setReport(res.data);
+      if (res.data.length > 0) {
+        setSuccess(`📊 Report loaded: ${res.data.length} student(s) found`);
+      }
     } catch (err) {
-      setError("Failed to load report");
+      setError("❌ Failed to load report");
     }
     setLoading(false);
   };
@@ -26,8 +50,23 @@ const TeacherRemedialReport = () => {
   return (
     <div className="remedial-container">
       <h2>Remedial Report</h2>
-      {loading && <div>Loading...</div>}
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      
+      {/* Flash Messages */}
+      {success && (
+        <div className="flash-message success">
+          <span>✅</span>
+          {success}
+        </div>
+      )}
+      
+      {error && (
+        <div className="flash-message error">
+          <span>❌</span>
+          {error}
+        </div>
+      )}
+
+      {loading && <div>📊 Loading report...</div>}
       {report.length === 0 && !loading && <div>No data available.</div>}
       {report.length > 0 && (
         <table className="remedial-table">

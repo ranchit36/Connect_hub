@@ -40,6 +40,9 @@ mongoose.connection.on('error', (err) => {
 // Serve images statically
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
+// Serve documents statically
+app.use("/documents", express.static(path.join(__dirname, "public/documents")));
+
 // Middleware
 app.use(cors());
 app.use(express.json());

@@ -4,7 +4,8 @@ const RemedialAssignmentSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     description: { type: String },
-    image: { type: String, required: true }, // Path to assignment image
+    file: { type: String, required: true }, // Path to assignment file (image or document)
+    fileType: { type: String, required: true, enum: ['image', 'document'] }, // Type of file uploaded
     maxMarks: { type: Number, required: true },
     teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },

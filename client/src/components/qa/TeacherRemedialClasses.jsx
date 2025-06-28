@@ -12,15 +12,35 @@ const TeacherRemedialClasses = ({ teacherId }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [maxMarks, setMaxMarks] = useState("");
-  const [image, setImage] = useState(null);
+  const [file, setFile] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     fetchAssignments();
   }, []);
+
+  // Auto-dismiss flash messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const fetchAssignments = async () => {
     setLoading(true);
@@ -35,27 +55,29 @@ const TeacherRemedialClasses = ({ teacherId }) => {
 
   const handleAssignmentSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !maxMarks || !image) {
-      setError("Title, max marks, and image are required");
+    if (!title || !maxMarks || !file) {
+      setError("Title, max marks, and file are required");
       return;
     }
     setLoading(true);
     setError("");
+    setSuccess("");
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", description);
     formData.append("maxMarks", maxMarks);
     formData.append("teacherId", teacherId);
-    formData.append("image", image);
+    formData.append("file", file);
     try {
       await createRemedialAssignment(formData);
+      setSuccess("✅ Assignment posted successfully!");
       setTitle("");
       setDescription("");
       setMaxMarks("");
-      setImage(null);
+      setFile(null);
       fetchAssignments();
     } catch (err) {
-      setError("Failed to create assignment");
+      setError("❌ Failed to create assignment");
     }
     setLoading(false);
   };
@@ -63,29 +85,84 @@ const TeacherRemedialClasses = ({ teacherId }) => {
   const handleViewSubmissions = async (assignmentId) => {
     setSelectedAssignment(assignmentId);
     setLoading(true);
+    setError("");
+    setSuccess("");
     try {
       const res = await getRemedialSubmissions(assignmentId);
       setSubmissions(res.data);
+      setSuccess(`📋 Loaded ${res.data.length} submission(s) for this assignment`);
     } catch (err) {
-      setError("Failed to load submissions");
+      setError("❌ Failed to load submissions");
     }
     setLoading(false);
   };
 
   const handleAssignMarks = async (submissionId, marks) => {
     setLoading(true);
+    setError("");
+    setSuccess("");
     try {
       await assignRemedialMarks(submissionId, marks);
+      setSuccess(`🎯 Marks awarded: ${marks} points`);
       handleViewSubmissions(selectedAssignment);
     } catch (err) {
-      setError("Failed to assign marks");
+      setError("❌ Failed to assign marks");
     }
     setLoading(false);
+  };
+
+  const renderFilePreview = (file, fileType) => {
+    if (fileType === 'image') {
+      return (
+        <img
+          src={`http://localhost:8800/images/${file}`}
+          alt="assignment"
+          style={{ width: 100, marginTop: 5 }}
+        />
+      );
+    } else {
+      return (
+        <div style={{ marginTop: 5 }}>
+          <a 
+            href={`http://localhost:8800/documents/${file}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              display: 'inline-block', 
+              padding: '8px 12px', 
+              backgroundColor: '#1976d2', 
+              color: 'white', 
+              textDecoration: 'none', 
+              borderRadius: '4px',
+              fontSize: '14px'
+            }}
+          >
+            📄 View Document
+          </a>
+        </div>
+      );
+    }
   };
 
   return (
     <div className="remedial-container">
       <h2>Remedial Classes - Teacher</h2>
+      
+      {/* Flash Messages */}
+      {success && (
+        <div className="flash-message success">
+          <span>✅</span>
+          {success}
+        </div>
+      )}
+      
+      {error && (
+        <div className="flash-message error">
+          <span>❌</span>
+          {error}
+        </div>
+      )}
+
       <form className="remedial-form" onSubmit={handleAssignmentSubmit} style={{ marginBottom: 20 }}>
         <h3>Post New Assignment</h3>
         <input
@@ -110,14 +187,16 @@ const TeacherRemedialClasses = ({ teacherId }) => {
         />
         <input
           type="file"
-          accept="image/*"
-          onChange={(e) => setImage(e.target.files[0])}
+          accept="image/*,.pdf,.doc,.docx,.txt,.csv"
+          onChange={(e) => setFile(e.target.files[0])}
           required
         />
+        <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
+          Accepted formats: Images (JPG, PNG, GIF), Documents (PDF, DOC, DOCX, TXT, CSV)
+        </small>
         <button type="submit" disabled={loading}>
-          {loading ? "Posting..." : "Post Assignment"}
+          {loading ? "📤 Posting..." : "📝 Post Assignment"}
         </button>
-        {error && <div style={{ color: "red" }}>{error}</div>}
       </form>
 
       <h3>All Assignments</h3>
@@ -128,21 +207,17 @@ const TeacherRemedialClasses = ({ teacherId }) => {
             <div>
               <b>{a.title}</b> (Max Marks: {a.maxMarks})
               <button onClick={() => handleViewSubmissions(a._id)} style={{ marginLeft: 10 }}>
-                View Submissions
+                👁️ View Submissions
               </button>
               <br />
-              <img
-                src={`http://localhost:8800/images/${a.image}`}
-                alt="assignment"
-                style={{ width: 100, marginTop: 5 }}
-              />
+              {renderFilePreview(a.file, a.fileType)}
             </div>
           </li>
         ))}
       </ul>
 
       {selectedAssignment && (
-        <div style={{ marginTop: 30 }}>
+        <div>
           <h4>Submissions for Assignment</h4>
           {submissions.length === 0 && <div>No submissions yet.</div>}
           <ul className="remedial-submissions-list">
@@ -150,11 +225,7 @@ const TeacherRemedialClasses = ({ teacherId }) => {
               <li key={s._id} className="remedial-submission-card">
                 <div>
                   Student: {s.studentId?.username || "Unknown"} <br />
-                  <img
-                    src={`http://localhost:8800/images/${s.image}`}
-                    alt="submission"
-                    style={{ width: 80, marginTop: 5 }}
-                  />
+                  {renderFilePreview(s.file, s.fileType)}
                   <br />
                   Marks Awarded: {s.marksAwarded !== null ? s.marksAwarded : "Not graded"}
                   <br />
