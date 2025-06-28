@@ -16,6 +16,7 @@ const qaRoute = require("./routes/qa");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const remedialRoute = require("./routes/remedial");
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ app.use("/api/clubs", studentOrganizationRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/internships",internshipRoutes);
 app.use("/api/qa", qaRoute);
+app.use("/api/remedial", remedialRoute);
 
 // Test routes
 app.get("/", (req, res) => {

@@ -14,6 +14,8 @@ import {
   BusinessCenter,
   SupervisorAccount,
 } from "@mui/icons-material";
+import HealingIcon from '@mui/icons-material/Healing';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 import { Users } from "../../dummyData";
 import CloseFriend from "../closeFriend/CloseFriend";
@@ -87,15 +89,35 @@ export default function Sidebar() {
 
 {/* Add for teachers/admin */}
 {user?.isAdmin && (
-  <Link to="/teacher-qa-dashboard" className="link">
-    <li className="sidebarListItem">
-      <SupervisorAccount className="sidebarIcon" />
-      <span className="sidebarListItemText">Q&A Management</span>
-    </li>
-  </Link>
+  <>
+    <Link to="/teacher-remedial-classes" className="link">
+      <li className="sidebarListItem">
+        <HealingIcon className="sidebarIcon" />
+        <span className="sidebarListItemText">Remedial Classes</span>
+      </li>
+    </Link>
+    <Link to="/teacher-remedial-report" className="link">
+      <li className="sidebarListItem">
+        <AssessmentIcon className="sidebarIcon" />
+        <span className="sidebarListItemText">Remedial Report</span>
+      </li>
+    </Link>
+    <Link to="/teacher-qa-dashboard" className="link">
+      <li className="sidebarListItem">
+        <SupervisorAccount className="sidebarIcon" />
+        <span className="sidebarListItemText">Q&A Management</span>
+      </li>
+    </Link>
+  </>
 )}
 
 {/* Add for students */}
+<Link to="/student-remedial-classes" className="link">
+  <li className="sidebarListItem">
+    <HealingIcon className="sidebarIcon" />
+    <span className="sidebarListItemText">Remedial Classes</span>
+  </li>
+</Link>
 <Link to="/qa-history" className="link">
   <li className="sidebarListItem">
     <QuestionAnswer className="sidebarIcon" />

@@ -23,7 +23,7 @@ load_dotenv()
 MONGO_URL = os.getenv("MONGO_URL")
 uri = MONGO_URL
 client = MongoClient(uri, server_api=ServerApi('1'))
-database = client.get_database("test")
+database = client.get_database("remedialdb")
 Q_A = database.get_collection("Q_a")
 
 # Initialize session state

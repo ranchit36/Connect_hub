@@ -13,6 +13,9 @@ import Internship from "./extra/Internships";
 import About from "./extra/AboutRVCollege";
 import TeacherQADashboard from "./components/qa/TeacherQADashboard";
 import StudentQAView from "./components/qa/StudentQAView";
+import TeacherRemedialClasses from "./components/qa/TeacherRemedialClasses";
+import TeacherRemedialReport from "./components/qa/TeacherRemedialReport";
+import StudentRemedialClasses from "./components/qa/StudentRemedialClasses";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 
@@ -40,6 +43,18 @@ export default function App() {
         <Route 
           path="/qa-history" 
           element={user ? <StudentQAView /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path="/teacher-remedial-classes" 
+          element={user?.isAdmin ? <TeacherRemedialClasses teacherId={user._id} /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/teacher-remedial-report" 
+          element={user?.isAdmin ? <TeacherRemedialReport /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/student-remedial-classes" 
+          element={user ? <StudentRemedialClasses studentId={user._id} /> : <Navigate to="/login" />} 
         />
       </Route>
       </Routes>
