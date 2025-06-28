@@ -36,9 +36,21 @@ export const getRemedialSubmissions = async (assignmentId) => {
   return axios.get(`/remedial/assignment/${assignmentId}/submissions`);
 };
 
+// Remedial: Student gets their submissions
+export const getStudentSubmissions = async (studentId) => {
+  return axios.get(`/remedial/student/${studentId}/submissions`);
+};
+
 // Remedial: Teacher assigns marks to a submission
 export const assignRemedialMarks = async (submissionId, marksAwarded) => {
   return axios.patch(`/remedial/submission/${submissionId}/marks`, { marksAwarded });
+};
+
+// Remedial: Teacher uploads review for a submission
+export const uploadRemedialReview = async (submissionId, formData) => {
+  return axios.patch(`/remedial/submission/${submissionId}/review`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 };
 
 // Remedial: Teacher gets remedial report

@@ -140,6 +140,18 @@ router.get("/assignment/:id/submissions", async (req, res) => {
   }
 });
 
+// STUDENT: Get all submissions for a specific student
+router.get("/student/:studentId/submissions", async (req, res) => {
+  try {
+    const submissions = await RemedialSubmission.find({ studentId: req.params.studentId })
+      .populate("assignmentId", "title maxMarks")
+      .populate("reviewedBy", "username");
+    res.status(200).json(submissions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // TEACHER: Assign marks to a submission
 router.patch("/submission/:id/marks", async (req, res) => {
   try {
@@ -149,6 +161,36 @@ router.patch("/submission/:id/marks", async (req, res) => {
       { marksAwarded },
       { new: true }
     );
+    res.status(200).json(submission);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// TEACHER: Upload review for a submission
+router.patch("/submission/:id/review", upload.single("reviewFile"), async (req, res) => {
+  try {
+    const { reviewText, teacherId } = req.body;
+    const uploadedFile = req.file;
+    
+    const updateData = {
+      reviewText,
+      reviewDate: new Date(),
+      reviewedBy: teacherId
+    };
+
+    if (uploadedFile) {
+      const fileType = getFileType(uploadedFile.mimetype);
+      updateData.reviewFile = uploadedFile.filename;
+      updateData.reviewFileType = fileType;
+    }
+
+    const submission = await RemedialSubmission.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+    
     res.status(200).json(submission);
   } catch (err) {
     res.status(500).json({ message: err.message });

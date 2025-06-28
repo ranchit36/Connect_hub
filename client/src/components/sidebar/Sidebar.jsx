@@ -111,13 +111,17 @@ export default function Sidebar() {
   </>
 )}
 
-{/* Add for students */}
-<Link to="/student-remedial-classes" className="link">
-  <li className="sidebarListItem">
-    <HealingIcon className="sidebarIcon" />
-    <span className="sidebarListItemText">Remedial Classes</span>
-  </li>
-</Link>
+{/* Add for students (non-admin users) */}
+{!user?.isAdmin && (
+  <Link to="/student-remedial-classes" className="link">
+    <li className="sidebarListItem">
+      <HealingIcon className="sidebarIcon" />
+      <span className="sidebarListItemText">Remedial Classes</span>
+    </li>
+  </Link>
+)}
+
+{/* QA History for both teachers and students */}
 <Link to="/qa-history" className="link">
   <li className="sidebarListItem">
     <QuestionAnswer className="sidebarIcon" />

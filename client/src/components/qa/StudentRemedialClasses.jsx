@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   getRemedialAssignments,
   submitRemedialSolution,
+  getStudentSubmissions,
 } from "../../apiCalls";
 
 const StudentRemedialClasses = ({ studentId }) => {
@@ -11,6 +12,7 @@ const StudentRemedialClasses = ({ studentId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [mySubmissions, setMySubmissions] = useState([]);
 
   useEffect(() => {
     fetchAssignments();
@@ -51,6 +53,15 @@ const StudentRemedialClasses = ({ studentId }) => {
     setLoading(false);
   };
 
+  const fetchMySubmissions = async () => {
+    try {
+      const res = await getStudentSubmissions(studentId);
+      setMySubmissions(res.data);
+    } catch (err) {
+      console.error("Failed to fetch submissions:", err);
+    }
+  };
+
   const handleSolutionSubmit = async (e) => {
     e.preventDefault();
     if (!solutionFile || !selectedAssignment) {
@@ -69,6 +80,7 @@ const StudentRemedialClasses = ({ studentId }) => {
       setSuccess("✅ Solution submitted successfully!");
       setSolutionFile(null);
       setSelectedAssignment(null);
+      fetchMySubmissions(); // Refresh submissions after submitting
     } catch (err) {
       setError("❌ Failed to submit solution");
     }
@@ -108,6 +120,39 @@ const StudentRemedialClasses = ({ studentId }) => {
     }
   };
 
+  const renderReviewPreview = (file, fileType) => {
+    if (fileType === 'image') {
+      return (
+        <img
+          src={`http://localhost:8800/images/${file}`}
+          alt="review"
+          style={{ width: 80, marginTop: 5 }}
+        />
+      );
+    } else {
+      return (
+        <div style={{ marginTop: 5 }}>
+          <a 
+            href={`http://localhost:8800/documents/${file}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              display: 'inline-block', 
+              padding: '6px 10px', 
+              backgroundColor: '#28a745', 
+              color: 'white', 
+              textDecoration: 'none', 
+              borderRadius: '4px',
+              fontSize: '12px'
+            }}
+          >
+            📄 View Review
+          </a>
+        </div>
+      );
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h2>Remedial Classes - Student</h2>
@@ -127,11 +172,11 @@ const StudentRemedialClasses = ({ studentId }) => {
         </div>
       )}
 
-      <h3>Assignments</h3>
+      <h3>Available Assignments</h3>
       {assignments.length === 0 && <div>No assignments yet.</div>}
       <ul>
         {assignments.map((a) => (
-          <li key={a._id} style={{ marginBottom: 20 }}>
+          <li key={a._id} style={{ marginBottom: 20, padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
             <b>{a.title}</b> (Max Marks: {a.maxMarks})<br />
             Teacher: {a.teacherId?.username || "Unknown"}<br />
             {a.description && <span>Description: {a.description}<br /></span>}
@@ -145,7 +190,7 @@ const StudentRemedialClasses = ({ studentId }) => {
       </ul>
 
       {selectedAssignment && (
-        <form onSubmit={handleSolutionSubmit} style={{ marginTop: 20 }}>
+        <form onSubmit={handleSolutionSubmit} style={{ marginTop: 20, padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <h4>Upload Solution for Assignment</h4>
           <input
             type="file"
@@ -160,6 +205,74 @@ const StudentRemedialClasses = ({ studentId }) => {
             {loading ? "📤 Uploading..." : "📝 Submit Solution"}
           </button>
         </form>
+      )}
+
+      <h3 style={{ marginTop: '40px' }}>My Submissions & Reviews</h3>
+      {mySubmissions.length === 0 ? (
+        <div style={{ 
+          padding: '20px', 
+          backgroundColor: '#fff', 
+          borderRadius: '8px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginTop: '20px'
+        }}>
+          <p style={{ color: '#666', fontStyle: 'italic' }}>
+            📋 You haven't submitted any assignments yet. Submit a solution to see it here along with teacher reviews.
+          </p>
+        </div>
+      ) : (
+        <div style={{ marginTop: '20px' }}>
+          {mySubmissions.map((submission) => (
+            <div key={submission._id} style={{ 
+              padding: '20px', 
+              backgroundColor: '#fff', 
+              borderRadius: '8px', 
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              marginBottom: '20px'
+            }}>
+              <h4>📝 {submission.assignmentId?.title || 'Assignment'}</h4>
+              <p><strong>Submitted:</strong> {new Date(submission.createdAt).toLocaleDateString()}</p>
+              <p><strong>Marks Awarded:</strong> {submission.marksAwarded !== null ? `${submission.marksAwarded} points` : 'Not graded yet'}</p>
+              
+              <div style={{ marginTop: '15px' }}>
+                <strong>Your Submission:</strong>
+                {renderFilePreview(submission.file, submission.fileType)}
+              </div>
+
+              {/* Show teacher review if available */}
+              {submission.reviewText && (
+                <div style={{ 
+                  marginTop: '15px', 
+                  padding: '15px', 
+                  backgroundColor: '#f8f9fa', 
+                  borderRadius: '6px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <h5 style={{ color: '#28a745', marginBottom: '10px' }}>📋 Teacher Review</h5>
+                  <p style={{ marginBottom: '10px' }}>{submission.reviewText}</p>
+                  {submission.reviewFile && renderReviewPreview(submission.reviewFile, submission.reviewFileType)}
+                  <small style={{ color: '#666' }}>
+                    Reviewed by: {submission.reviewedBy?.username || 'Teacher'} on {new Date(submission.reviewDate).toLocaleDateString()}
+                  </small>
+                </div>
+              )}
+
+              {!submission.reviewText && (
+                <div style={{ 
+                  marginTop: '15px', 
+                  padding: '10px', 
+                  backgroundColor: '#fff3cd', 
+                  borderRadius: '4px',
+                  border: '1px solid #ffeaa7'
+                }}>
+                  <small style={{ color: '#856404' }}>
+                    ⏳ Teacher review pending...
+                  </small>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

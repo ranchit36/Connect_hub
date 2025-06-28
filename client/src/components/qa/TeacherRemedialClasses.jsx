@@ -4,6 +4,7 @@ import {
   getRemedialAssignments,
   getRemedialSubmissions,
   assignRemedialMarks,
+  uploadRemedialReview,
 } from "../../apiCalls";
 import "./teacherRemedial.css";
 
@@ -18,6 +19,11 @@ const TeacherRemedialClasses = ({ teacherId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  // Review states
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewFile, setReviewFile] = useState(null);
 
   useEffect(() => {
     fetchAssignments();
@@ -111,6 +117,36 @@ const TeacherRemedialClasses = ({ teacherId }) => {
     setLoading(false);
   };
 
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!reviewText && !reviewFile) {
+      setError("❌ Please provide either review text or upload a review file");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    
+    const formData = new FormData();
+    formData.append("reviewText", reviewText);
+    formData.append("teacherId", teacherId);
+    if (reviewFile) {
+      formData.append("reviewFile", reviewFile);
+    }
+    
+    try {
+      await uploadRemedialReview(selectedSubmission, formData);
+      setSuccess("✅ Review uploaded successfully!");
+      setReviewText("");
+      setReviewFile(null);
+      setSelectedSubmission(null);
+      handleViewSubmissions(selectedAssignment);
+    } catch (err) {
+      setError("❌ Failed to upload review");
+    }
+    setLoading(false);
+  };
+
   const renderFilePreview = (file, fileType) => {
     if (fileType === 'image') {
       return (
@@ -138,6 +174,39 @@ const TeacherRemedialClasses = ({ teacherId }) => {
             }}
           >
             📄 View Document
+          </a>
+        </div>
+      );
+    }
+  };
+
+  const renderReviewPreview = (file, fileType) => {
+    if (fileType === 'image') {
+      return (
+        <img
+          src={`http://localhost:8800/images/${file}`}
+          alt="review"
+          style={{ width: 80, marginTop: 5 }}
+        />
+      );
+    } else {
+      return (
+        <div style={{ marginTop: 5 }}>
+          <a 
+            href={`http://localhost:8800/documents/${file}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              display: 'inline-block', 
+              padding: '6px 10px', 
+              backgroundColor: '#28a745', 
+              color: 'white', 
+              textDecoration: 'none', 
+              borderRadius: '4px',
+              fontSize: '12px'
+            }}
+          >
+            📄 View Review
           </a>
         </div>
       );
@@ -238,10 +307,77 @@ const TeacherRemedialClasses = ({ teacherId }) => {
                       if (e.target.value) handleAssignMarks(s._id, Number(e.target.value));
                     }}
                   />
+                  <br />
+                  <button 
+                    onClick={() => setSelectedSubmission(s._id)}
+                    style={{ marginTop: '10px', backgroundColor: '#28a745' }}
+                  >
+                    📝 Add Review
+                  </button>
+                  
+                  {/* Show existing review if available */}
+                  {s.reviewText && (
+                    <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                      <strong>Review:</strong> {s.reviewText}
+                      {s.reviewFile && renderReviewPreview(s.reviewFile, s.reviewFileType)}
+                      <br />
+                      <small style={{ color: '#666' }}>
+                        Reviewed on: {new Date(s.reviewDate).toLocaleDateString()}
+                      </small>
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Review Upload Form */}
+      {selectedSubmission && (
+        <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <h4>Upload Review for Submission</h4>
+          <form onSubmit={handleReviewSubmit}>
+            <textarea
+              placeholder="Enter review text/feedback..."
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              style={{ 
+                width: '100%', 
+                minHeight: '100px', 
+                padding: '10px', 
+                marginBottom: '10px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                resize: 'vertical'
+              }}
+            />
+            <input
+              type="file"
+              accept="image/*,.pdf,.doc,.docx,.txt,.csv"
+              onChange={(e) => setReviewFile(e.target.files[0])}
+              style={{ marginBottom: '10px' }}
+            />
+            <small style={{ color: '#666', display: 'block', marginBottom: '10px' }}>
+              Accepted formats: Images (JPG, PNG, GIF), Documents (PDF, DOC, DOCX, TXT, CSV)
+            </small>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" disabled={loading}>
+                {loading ? "📤 Uploading..." : "📝 Upload Review"}
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setSelectedSubmission(null);
+                  setReviewText("");
+                  setReviewFile(null);
+                }}
+                style={{ backgroundColor: '#6c757d' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
