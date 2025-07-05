@@ -294,6 +294,13 @@ const TeacherRemedialClasses = ({ teacherId }) => {
               <li key={s._id} className="remedial-submission-card">
                 <div>
                   Student: {s.studentId?.username || "Unknown"} <br />
+                  <strong>Submitted:</strong> {new Date(s.createdAt).toLocaleDateString()}
+                  {s.updatedAt && s.updatedAt !== s.createdAt && (
+                    <span style={{ color: '#ff6b35', fontWeight: 'bold' }}>
+                      {" "}(Resubmitted: {new Date(s.updatedAt).toLocaleDateString()})
+                    </span>
+                  )}
+                  <br />
                   {renderFilePreview(s.file, s.fileType)}
                   <br />
                   Marks Awarded: {s.marksAwarded !== null ? s.marksAwarded : "Not graded"}

@@ -16,7 +16,10 @@ const StudentRemedialClasses = ({ studentId }) => {
 
   useEffect(() => {
     fetchAssignments();
-  }, []);
+    if (studentId) {
+      fetchMySubmissions();
+    }
+  }, [studentId]);
 
   // Auto-dismiss flash messages
   useEffect(() => {
@@ -55,10 +58,16 @@ const StudentRemedialClasses = ({ studentId }) => {
 
   const fetchMySubmissions = async () => {
     try {
+      console.log("Fetching submissions for studentId:", studentId);
       const res = await getStudentSubmissions(studentId);
+      console.log("Submissions response:", res.data);
       setMySubmissions(res.data);
+      if (res.data.length > 0) {
+        setSuccess(`📋 Loaded ${res.data.length} submission(s)`);
+      }
     } catch (err) {
       console.error("Failed to fetch submissions:", err);
+      setError("❌ Failed to load submissions");
     }
   };
 
@@ -76,8 +85,8 @@ const StudentRemedialClasses = ({ studentId }) => {
     formData.append("studentId", studentId);
     formData.append("file", solutionFile);
     try {
-      await submitRemedialSolution(formData);
-      setSuccess("✅ Solution submitted successfully!");
+      const response = await submitRemedialSolution(formData);
+      setSuccess(`✅ ${response.data.message}`);
       setSolutionFile(null);
       setSelectedAssignment(null);
       fetchMySubmissions(); // Refresh submissions after submitting
@@ -201,6 +210,18 @@ const StudentRemedialClasses = ({ studentId }) => {
           <small style={{ color: '#666', display: 'block', marginTop: '5px' }}>
             Accepted formats: Images (JPG, PNG, GIF), Documents (PDF, DOC, DOCX, TXT, CSV)
           </small>
+          <div style={{ 
+            marginTop: '10px', 
+            padding: '10px', 
+            backgroundColor: '#e3f2fd', 
+            borderRadius: '4px',
+            border: '1px solid #bbdefb'
+          }}>
+            <small style={{ color: '#1976d2' }}>
+              💡 <strong>Note:</strong> If you've already submitted this assignment, your new submission will replace the previous one. 
+              Any existing teacher reviews and feedback will be preserved.
+            </small>
+          </div>
           <button type="submit" disabled={loading}>
             {loading ? "📤 Uploading..." : "📝 Submit Solution"}
           </button>
@@ -208,6 +229,23 @@ const StudentRemedialClasses = ({ studentId }) => {
       )}
 
       <h3 style={{ marginTop: '40px' }}>My Submissions & Reviews</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <span>Your submitted assignments and teacher feedback</span>
+        <button 
+          onClick={fetchMySubmissions}
+          style={{ 
+            padding: '8px 16px', 
+            backgroundColor: '#17a2b8', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          🔄 Refresh
+        </button>
+      </div>
       {mySubmissions.length === 0 ? (
         <div style={{ 
           padding: '20px', 
@@ -232,7 +270,9 @@ const StudentRemedialClasses = ({ studentId }) => {
             }}>
               <h4>📝 {submission.assignmentId?.title || 'Assignment'}</h4>
               <p><strong>Submitted:</strong> {new Date(submission.createdAt).toLocaleDateString()}</p>
-              <p><strong>Marks Awarded:</strong> {submission.marksAwarded !== null ? `${submission.marksAwarded} points` : 'Not graded yet'}</p>
+              {submission.updatedAt && submission.updatedAt !== submission.createdAt && (
+                <p><strong>Resubmitted:</strong> {new Date(submission.updatedAt).toLocaleDateString()}</p>
+              )}
               
               <div style={{ marginTop: '15px' }}>
                 <strong>Your Submission:</strong>

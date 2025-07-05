@@ -115,15 +115,51 @@ router.post("/submission", upload.single("file"), async (req, res) => {
 
     const fileType = getFileType(uploadedFile.mimetype);
     
-    const submission = new RemedialSubmission({
-      assignmentId,
-      studentId,
-      file: uploadedFile.filename,
-      fileType,
+    // Check if student already submitted for this assignment
+    const existingSubmission = await RemedialSubmission.findOne({ 
+      assignmentId, 
+      studentId 
     });
     
-    await submission.save();
-    res.status(201).json(submission);
+    if (existingSubmission) {
+      // Update existing submission (resubmission)
+      const updatedSubmission = await RemedialSubmission.findByIdAndUpdate(
+        existingSubmission._id,
+        {
+          file: uploadedFile.filename,
+          fileType,
+          // Preserve existing marks and reviews
+          marksAwarded: existingSubmission.marksAwarded,
+          reviewText: existingSubmission.reviewText,
+          reviewFile: existingSubmission.reviewFile,
+          reviewFileType: existingSubmission.reviewFileType,
+          reviewDate: existingSubmission.reviewDate,
+          reviewedBy: existingSubmission.reviewedBy,
+          // Update timestamp to show it was resubmitted
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+      
+      res.status(200).json({ 
+        submission: updatedSubmission, 
+        message: "Assignment resubmitted successfully" 
+      });
+    } else {
+      // Create new submission
+      const submission = new RemedialSubmission({
+        assignmentId,
+        studentId,
+        file: uploadedFile.filename,
+        fileType,
+      });
+      
+      await submission.save();
+      res.status(201).json({ 
+        submission, 
+        message: "Assignment submitted successfully" 
+      });
+    }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -143,11 +179,14 @@ router.get("/assignment/:id/submissions", async (req, res) => {
 // STUDENT: Get all submissions for a specific student
 router.get("/student/:studentId/submissions", async (req, res) => {
   try {
+    console.log("Fetching submissions for student:", req.params.studentId);
     const submissions = await RemedialSubmission.find({ studentId: req.params.studentId })
       .populate("assignmentId", "title maxMarks")
       .populate("reviewedBy", "username");
+    console.log("Found submissions:", submissions.length);
     res.status(200).json(submissions);
   } catch (err) {
+    console.error("Error fetching student submissions:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -211,10 +250,12 @@ router.get("/report", async (req, res) => {
         },
       },
     ]);
+    
     // Get all assignments
     const assignments = await RemedialAssignment.find();
     const maxTotal = assignments.reduce((sum, a) => sum + Number(a.maxMarks), 0);
     const totalAssignments = assignments.length;
+    
     // Attach student info and performance label
     const report = await Promise.all(
       aggregation.map(async (entry) => {
@@ -225,8 +266,13 @@ router.get("/report", async (req, res) => {
         else if (percent > 75) performance = "Good";
         else if (percent > 50) performance = "Average";
         else if (percent > 33) performance = "Below Average";
-        // Count how many assignments this student submitted
-        const assignmentsSubmitted = await RemedialSubmission.countDocuments({ studentId: entry._id });
+        
+        // Count unique assignments this student submitted (not total submissions)
+        const uniqueAssignmentsSubmitted = await RemedialSubmission.distinct("assignmentId", { 
+          studentId: entry._id 
+        });
+        const assignmentsSubmitted = uniqueAssignmentsSubmitted.length;
+        
         return {
           student: student ? student.username : "Unknown",
           email: student ? student.email : "",
