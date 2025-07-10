@@ -251,8 +251,8 @@ This project is licensed under the MIT License.
 ## 📬 Contact / Maintainers
 
 Created by:
-- Vinod Kumar
-- changotravinod@gmail.com
+- Ranchit Sharma
+- ranchitsharma36@gmail.com
 
 ---
 
